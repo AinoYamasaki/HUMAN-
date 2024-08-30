@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>対人地図</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* 既存のCSSコードはそのまま残しています */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .container {
+            margin: 10px;
+        }
+        table {
+            margin: 10px auto;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 5px;
+            font-size: 12px;
+            font-weight: normal; 
+        }
+        .short-input {
+            width: 100px; 
+        }
+        #map-container {
+            position: relative;
+            width: 350px;
+            height: 350px;
+            margin: 20px auto;
+            border-radius: 50%;
+        }
+        #user-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background-color: #F5F089;
+            color: #2e3851;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            z-index: 1;
+            box-shadow: 0 0 3px rgba(0, 0, 0, 0.5); 
+        }
+        .person-icon {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: #A7DBED;
+            color:  #2e3851;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            z-index: 2;
+            box-shadow: 0 0 3px rgba(0, 0, 0, 0.5); 
+        }
+        .button-container {
+            margin: 20px;
+        }
+        .line {
+            position: absolute;
+            width: 1px;
+            background-color: #000;
+            transform-origin: 0 0;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h4>私の人間関係をマップ化☺</h4>
+        <p>当てはまる人を入力しよう</p>
+        <table border="">
+            <tr><th>親しい人</th><th><input type="text" class="short-input" id="close1"></th><th><input type="text" class="short-input" id="close2"></th></tr>
+            <tr><th>よく話す人</th><th><input type="text" class="short-input" id="talk1"></th><th><input type="text" class="short-input" id="talk2"></th></tr>
+            <tr><th>影響を受ける人</th><th><input type="text" class="short-input" id="influence1"></th><th><input type="text" class="short-input" id="influence2"></th></tr>
+            <tr><th>大切な人</th><th><input type="text" class="short-input" id="important1"></th><th><input type="text" class="short-input" id="important2"></th></tr>
+            <tr><th>その他</th><th><input type="text" class="short-input" id="other1"></th><th><input type="text" class="short-input" id="other2"></th></tr>
+        </table>
+        <br>
+        <button onclick="saveMap()">アイコン化</button>
+        <br>
+        <div id="map-container">
+            <div id="user-center">自分</div>
+            <svg id="line-container" width="100%" height="100%" style="position: absolute; top: 0; left: 0;"></svg>
+        </div>
+        <div class="button-container">
+            <button onclick="saveMap()">保存</button>
+        </div>
+        <div>
+            <button><a href="hurikaeru2.html">振り返る</a></button>
+        </div>
+    </div>
+
+    <script>
+        let activeIcon = null;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        async function saveMap() {
+            const ids = ['close1', 'close2', 'talk1', 'talk2', 'influence1', 'influence2', 'important1', 'important2', 'other1', 'other2'];
+            const names = ids.map(id => document.getElementById(id).value).filter(name => name);
+
+            // Neo4jにデータを送信
+            await sendToNeo4j(names);
+
+            // マップの更新
+            updateMap(names);
+        }
+
+        async function sendToNeo4j(names) {
+            const neo4jEndpoint = "http://<your-neo4j-endpoint>/db/data/transaction/commit";
+            const authHeader = "Basic " + btoa("username:password"); // ユーザー名とパスワードを入力
+
+            names.forEach(async (name) => {
+                const query = {
+                    statements: [
+                        {
+                            statement: `
+                                MERGE (u:Person {name: "自分"})
+                                MERGE (p:Person {name: "${name}"})
+                                MERGE (u)-[:RELATIONSHIP {type: "関係"}]->(p)
+                            `,
+                            resultDataContents: ["row", "graph"]
+                        }
+                    ]
+                };
+
+                try {
+                    const response = await fetch(neo4jEndpoint, {
+                        method: "POST",
+                        headers: {
+                            "Authorization": authHeader,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(query)
+                    });
+                    const data = await response.json();
+                    console.log('Neo4j Response:', data);
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            });
+        }
+
+        function updateMap(names) {
+            const mapContainer = document.getElementById('map-container');
+            const userCenter = document.getElementById('user-center');
+            const svg = document.getElementById('line-container');
+            
+            while (mapContainer.children.length > 2) {
+                mapContainer.removeChild(mapContainer.lastChild);
+            }
+
+            svg.innerHTML = '';
+
+            names.forEach((name, index) => {
+                const angle = (360 / names.length) * index;
+                const radians = angle * (Math.PI / 180);
+                const radius = 100;
+                const x = Math.cos(radians) * radius + mapContainer.clientWidth / 2 - 20;
+                const y = Math.sin(radians) * radius + mapContainer.clientHeight / 2 - 20;
+
+                const personIcon = document.createElement('div');
+                personIcon.className = 'person-icon';
+                personIcon.style.left = `${x}px`;
+                personIcon.style.top = `${y}px`;
+                personIcon.textContent = name;
+
+                personIcon.addEventListener('mousedown', dragStart);
+                personIcon.addEventListener('mousemove', dragMove);
+                personIcon.addEventListener('mouseup', dragEnd);
+                personIcon.addEventListener('mouseleave', dragEnd);
+
+                personIcon.addEventListener('touchstart', dragStart);
+                personIcon.addEventListener('touchmove', dragMove);
+                personIcon.addEventListener('touchend', dragEnd);
+
+                mapContainer.appendChild(personIcon);
+
+                drawLine(userCenter, personIcon);
+            });
+        }
+
+        function drawLine(startElem, endElem) {
+            const svg = document.getElementById('line-container');
+
+            const startRect = startElem.getBoundingClientRect();
+            const endRect = endElem.getBoundingClientRect();
+            const mapRect = svg.getBoundingClientRect();
+
+            const x1 = startRect.left + startRect.width / 2 - mapRect.left;
+            const y1 = startRect.top + startRect.height / 2 - mapRect.top;
+            const x2 = endRect.left + endRect.width / 2 - mapRect.left;
+            const y2 = endRect.top + endRect.height / 2 - mapRect.top;
+
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute('x1', x1);
+            line.setAttribute('y1', y1);
+            line.setAttribute('x2', x2);
+            line.setAttribute('stroke', 'black');
+            line.setAttribute('stroke-width', '1');
+
+            svg.appendChild(line);
+        }
+
+        function dragStart(event) {
+            activeIcon = event.target;
+            const rect = activeIcon.getBoundingClientRect();
+            offsetX = (event.clientX || event.touches[0].clientX) - rect.left;
+            offsetY = (event.clientY || event.touches[0].clientY) - rect.top;
+        }
+
+        function dragMove(event) {
+            if (!activeIcon) return;
+
+            const x = (event.clientX || event.touches[0].clientX) - offsetX;
+            const y = (event.clientY || event.touches[0].clientY) - offsetY;
+
+            activeIcon.style.left = `${x}px`;
+            activeIcon.style.top = `${y}px`;
+
+            updateMap([...document.querySelectorAll('.person-icon')].map(icon => icon.textContent));
+        }
+
+        function dragEnd() {
+            activeIcon = null;
+        }
+    </script>
+</body>
+</html>

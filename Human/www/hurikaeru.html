@@ -1,0 +1,134 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src * data: gap: content: https://ssl.gstatic.com; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'">
+    
+    <link rel="stylesheet" href="components/loader.css">
+    <link rel="stylesheet" href="css/style.css">
+
+    <title>対人地図 - 振り返る</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .container {
+            margin: 10px;
+        }
+        .map-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .map-container {
+            position: relative;
+            width: 350px;
+            height: 350px;
+            border: 2px solid #000;
+            border-radius: 50%;
+            background-color: #f0f0f0;
+            margin-bottom: 10px;
+        }
+        .path {
+            position: absolute;
+            width: 150px; /* 道の幅 */
+            height: 10px; /* 道の高さ */
+            background-color: green; /* 緑色の道 */
+            border-radius: 5px;
+            top: 50%;
+            left: 50%;
+            transform: translate(0%, 50%) 
+            z-index: 1; /* アイコンの下に配置 */
+        }
+        #user-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background-color: #FED364;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            z-index: 2; /* アイコンが道の上に来るように設定 */
+        }
+        .person-icon {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: #2196f3;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h4>対人地図の振り返り</h4>
+        //道が表示されないなぜ(・・?//
+        <br>
+        
+        <div id="maps-container"></div>
+        <button onclick="location.href='index.html'">戻る</button>
+    </div>
+
+    <script>
+        window.onload = function() {
+            const mapsContainer = document.getElementById('maps-container');
+            const savedData = JSON.parse(localStorage.getItem('maps') || '[]');
+
+            savedData.forEach(data => {
+                const mapWrapper = document.createElement('div');
+                mapWrapper.className = 'map-wrapper';
+
+                const mapContainer = document.createElement('div');
+                mapContainer.className = 'map-container';
+                mapWrapper.appendChild(mapContainer);
+
+                // 道の作成
+                const path = document.createElement('div');
+                path.className = 'path';
+                mapContainer.appendChild(path);
+
+                const userCenter = document.createElement('div');
+                userCenter.id = 'user-center';
+                userCenter.textContent = '自分';
+                mapContainer.appendChild(userCenter);
+
+                data.names.forEach((name, index) => {
+                    const angle = (360 / data.names.length) * index;
+                    const radians = angle * (Math.PI / 180);
+                    const radius = 100; // 半径
+                    const x = Math.cos(radians) * radius + mapContainer.clientWidth / 2 - 25; // 25はアイコンの半径
+                    const y = Math.sin(radians) * radius + mapContainer.clientHeight / 2 - 25;
+
+                    const personIcon = document.createElement('div');
+                    personIcon.className = 'person-icon';
+                    personIcon.style.left = `${x}px`;
+                    personIcon.style.top = `${y}px`;
+                    personIcon.textContent = name;
+                    
+                    mapContainer.appendChild(personIcon);
+                });
+
+                const dateLabel = document.createElement('p');
+                dateLabel.textContent = `日付: ${data.date}`;
+                mapWrapper.appendChild(dateLabel);
+
+                mapsContainer.appendChild(mapWrapper);
+            });
+        }
+    </script>
+</body>
+</html>

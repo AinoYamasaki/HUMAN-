@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タイムライン</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .timeline {
+            position: relative;
+            width: 2px;
+            background-color: #888;
+            height: 100vh;
+            margin: 0 40px;
+        }
+
+        .timeline-event {
+            position: relative;
+            margin-bottom: 50px;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+        .timeline-event.right {
+            justify-content: flex-end;
+        }
+
+        .timeline-event::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #888;
+            border-radius: 50%;
+            left: -5px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .timeline-event.right::after {
+            left: auto;
+            right: -5px;
+        }
+
+        .bubble {
+            padding: 10px 20px; /* Adjust padding to ensure the bubble is slightly larger than the text */
+            border-radius: 15px;
+            background-color: #A2CC51; /* Event background color */
+            color: #000;
+            box-shadow: 0 0 2px rgba(0,0,0,0.2);
+            cursor: pointer;
+            text-align: center; /* Centers the text horizontally */
+            display: inline-block; /* Keeps the bubble shape */
+            white-space: nowrap; /* Prevents text wrapping */
+        }
+
+        .timeline-event.right .bubble {
+            background-color: #A2CC51; /* Event background color */
+        }
+
+        .timeline-event.left .bubble {
+            background-color: #A2CC51; /* Event background color */
+        }
+
+        .age-label {
+            position: absolute;
+            left: -60px; /* Adjust to fit the label */
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <p style="margin-bottom: 50px;" class="color1">
+        私の道のり
+    </p>
+    
+    <div class="timeline">
+        <!-- 各イベントの構造 -->
+        <div class="timeline-event left" onclick="window.location.href='sakuseisuru.html'">
+            <div class="bubble">転校</div>
+            <div class="age-label">10歳</div>
+        </div>
+        <div class="timeline-event left" onclick="window.location.href='sakuseisuru.html'">
+            <div class="bubble">修学旅行</div>
+            <div class="age-label">15歳</div>
+        </div>
+        <div class="timeline-event left" onclick="window.location.href='sakuseisuru.html'">
+            <div class="bubble">成人</div>
+            <div class="age-label">20歳</div>
+        </div>
+    </div>
+    
+    <button onclick="window.location.href='index.html'">戻る</button>
+</body>
+</html>
